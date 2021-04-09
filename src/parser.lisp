@@ -7,6 +7,7 @@
 (in-package :nine.parser)
 
 (defvar *xss-payloads* '("<svg =\"on" "< leg'"))
+(defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
 
 (defun crawl-for-urls (url &optional (urls nil))
     (let* ((request (dex:get url))
@@ -23,6 +24,31 @@
 
 (defun extract-forms (root-node)
     (collect-from root-node 'form))
+
+(defun submit-form (url d)
+    (let ((data (index-to-string d)))
+    (dex:post url
+              :cookie-jar *cookie-jar*
+              :content data)))
+
+(defun fill-form (form value)
+    (let ((fields (collect-input form)))
+        (loop for field in fields
+              when (string= (assoc 'type field) "text")
+                do (setf-assoc field 'value (string value)))
+        fields))
+
+(defun index-to-string (list)
+    (loop for item in list do
+          (setf (car item) (string (car item)))))
+
+(defun setf-assoc (field key value)
+    (setf (cdr (assoc key field)) value))
+
+(defun collect-input (node)
+    (list (cons 'name (collect-from node 'input 'name))
+          (cons 'type (collect-from node 'input 'type))
+          (cons 'value (collect-from node 'input 'value))))
 
 (defun collect-from (root-node selectors &optional (attr nil))
     (loop for node across (clss:select (nodes-to-string selectors) root-node)
@@ -44,3 +70,4 @@
                         (lambda (node) (push (plump:text node) text-list))
                         :test #'plump:text-node-p)
         (apply #'concatenate 'string (nreverse text-list))))
+

@@ -2,8 +2,8 @@
   :version "0.0.0"
   :author "Walpurgisnatch"
   :license "MIT"
-  :depends-on (:dexador
-               :cl-ppcre)
+  :depends-on ("dexador"
+               "cl-ppcre")
   :components ((:module "src"
                 :components
                 ((:file "nine"))))
