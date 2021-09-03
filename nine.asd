@@ -9,5 +9,7 @@
                  "quri")
     :components ((:module "src"
                   :components
-                  ((:file "nine"))))
+                  ((:file "nine" :depends-on ("apiworks"))
+                   (:file "apiworks" :depends-on ("utils"))
+                   (:file "utils"))))
     :description "Web-application testing framework")

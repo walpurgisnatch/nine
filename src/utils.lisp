@@ -2,25 +2,37 @@
 (defpackage :nine.utils
   (:use :cl)
   (:export :for-line-in
-   :with-get
-   :prepare-url))
+           :with-get
+           :prepare-url
+   :merge-urls))
 
 (in-package :nine.utils)
+
+(defmacro with-interned-symbols (symbol-list &body body)
+  "Interns a set of symbols in the current package to variables of the same (symbol-name)."
+  (let ((symbol-list
+          (mapcar (lambda (s)
+                    (list s `(intern (symbol-name ',s))))
+                  symbol-list)))
+    `(let ,symbol-list ,@body)))
 
 (defmacro for-line-in (wordlist &body body)
   `(with-open-file (stream ,wordlist)
      (loop for line = (read-line stream nil)
            while line do (progn @,body))))
 
-(defmacro with-get (url &body body)
-  `(handler-case
-       (multiple-value-bind (response-body status-code response-headers quri-uri)
-           (handler-bind ((dex:http-request-failed #'dex:ignore-and-continue))
-             (dex:get (prepare-url ,url) :cookie-jar *cookie-jar*))
-         (declare (ignorable status-code response-headers quri-uri))
-         (let ((response-url (quri:render-uri quri-uri)))
-           (progn ,@body)))
-     (error (e) (print-error e))))
+(with-interned-symbols (response-body status-code)
+  (defmacro with-get (url &body body)
+    `(handler-case
+         (multiple-value-bind (response-body status-code response-headers quri-uri)
+             (handler-bind ((dex:http-request-failed #'dex:ignore-and-continue))
+               (dex:get (prepare-url ,url)))
+           (declare (ignorable response-body status-code response-headers quri-uri))
+           (let ((response-url (quri:render-uri quri-uri))
+                 (response (list response-body status-code response-headers)))
+             (declare (ignorable response-url response))
+             (progn ,@body)))
+       (error (e) (print e)))))
 
 (defun merge-urls (first second)
   (let ((lc (last-char first)))
@@ -42,6 +54,11 @@
 
 (defun substp (regex string)
   (if (cl-ppcre:scan-to-strings regex string)
+      t
+      nil))
+
+(defun string-starts-with (string x)
+  (if (string-equal string x :end1 (length x))
       t
       nil))
 
