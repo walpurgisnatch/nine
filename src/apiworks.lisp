@@ -26,7 +26,7 @@
 
 (defun argument-exists (argument &optional (default *url*))
   (let ((url (quri:render-uri (quri:make-uri :defaults default
-                                             :query ((argument . 1))))))
+                                             :query `((,argument . 1))))))
     (with-get url
       (unless (= status-code 404)
         (setf (gethash url *responses*) response)))))
