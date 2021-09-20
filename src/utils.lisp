@@ -4,7 +4,7 @@
   (:export :for-line-in
            :with-get
            :prepare-url
-   :merge-urls))
+           :merge-urls))
 
 (in-package :nine.utils)
 
@@ -54,14 +54,10 @@
       (error () http-url))))
 
 (defun substp (regex string)
-  (if (cl-ppcre:scan-to-strings regex string)
-      t
-      nil))
+  (cl-ppcre:scan-to-strings regex string))
 
 (defun string-starts-with (string x)
-  (if (string-equal string x :end1 (length x))
-      t
-      nil))
+  (string-equal string x :end1 (length x)))
 
 (defun last-char (x)
   (aref x (1- (length x))))

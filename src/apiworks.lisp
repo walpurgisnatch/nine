@@ -15,9 +15,16 @@
 
 (defvar *responses* (make-hash-table :test #'equalp))
 
+(defun random-string (len)
+  (with-output-to-string (str)
+    (dotimes (n len)
+      (case (random 3)
+        (0 (princ (code-char (+ 65 (random 26))) str))
+        (1 (princ (code-char (+ 97 (random 26))) str))
+        (2 (princ (random 10) str))))))
+
 (defun setup (url)
-  (setf *url* url)
-  (setf *bad-path* (dex:get (merge-urls url "18u24j38p88Z74"))))
+  (setf *url* url))
 
 (defun endpoint-exists (endpoint)
   (with-get (merge-urls *url* endpoint)
