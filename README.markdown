@@ -1,6 +1,5 @@
 # Nine
-
-## Installation
+Web application testing framework
 
 ## Usage
 
