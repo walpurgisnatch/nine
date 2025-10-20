@@ -1,37 +1,37 @@
 (in-package :cl-user)
 (defpackage :nine.apiworks
   (:use :cl
-        :nine.utils))
+        :nine.utils)
+  (:export :api-request
+           :map-response))
 
 (in-package :nine.apiworks)
 
-(defparameter *apiv* '("v1" "v2" "v3"))
-(defparameter *bad-codes* '(400 404))
-
-(defvar *url* nil)
-(defvar *bad-path* nil)
-(defvar *bad-argument* nil)
-(defvar *endpoints* nil)
-
 (defvar *responses* (make-hash-table :test #'equalp))
+(defparameter *bad-codes* '(404 403 401))
 
-(defun random-string (len)
-  (with-output-to-string (str)
-    (dotimes (n len)
-      (case (random 3)
-        (0 (princ (code-char (+ 65 (random 26))) str))
-        (1 (princ (code-char (+ 97 (random 26))) str))
-        (2 (princ (random 10) str))))))
+(defun api-request (link)
+  (jonathan:parse (ss:safe-get link)))
 
-(defun setup (url)
-  (setf *url* url))
+(defun map-response (json &optional result)
+  (cond ((null json) result)
+        ((consp (car json))
+         (map-response (car json) (map-response (cdr json) result)))
+        (t (map-response nil
+                         (concatenate 'list result (collect-keys json result))))))
 
-(defun endpoint-exists (endpoint)
-  (with-get (merge-urls *url* endpoint)
+(defun collect-keys (json list)
+  (loop for (k v) on json by #'cddr
+        unless (member k list :key #'car)
+        collect (list k
+                      (format nil "~a" (ts-type v)))))
+
+(defun endpoint-existsp (endpoint)
+  (with-get endpoint
     (unless (member status-code *bad-codes*)
       endpoint)))
 
-(defun argument-exists (argument &optional (default *url*))
+(defun argument-exists (argument &optional default)
   (let ((url (quri:render-uri (quri:make-uri :defaults default
                                              :query `((,argument . 1))))))
     (with-get url
@@ -46,12 +46,5 @@
         counting i into length
         finally (return (values length lines (1+ spaces)))))
 
-(defun response-change (body)
-  (or (= (length body) (length *bad-path*))))
-
-(defun brute-path (wordlist)
-  (for-line-in wordlist
-               (when (endpoint-exists line)
-                 (push line *endpoints*))))
 
 

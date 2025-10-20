@@ -3,8 +3,7 @@
   (:use :cl)
   (:export :for-line-in
            :with-get
-           :prepare-url
-           :merge-urls))
+           :ts-type))
 
 (in-package :nine.utils)
 
@@ -27,7 +26,7 @@
     `(handler-case
          (multiple-value-bind (,response-body ,status-code ,response-headers quri-uri)
              (handler-bind ((dex:http-request-failed #'dex:ignore-and-continue))
-               (dex:get (prepare-url ,url)))
+               (dex:get (ss:prepare-url ,url)))
            (declare (ignorable ,response-body ,status-code ,response-headers quri-uri))
            (let ((,response-url (quri:render-uri quri-uri))
                  (,response (list ,response-body ,status-code ,response-headers)))
@@ -35,29 +34,38 @@
              (progn ,@body)))
        (error (e) (print e)))))
 
-(defun merge-urls (first second)
-  (let ((lc (last-char first)))
-    (concatenate 'string first (unless (equal lc #\/) "/") second)))
-
-(defun prepare-url (url)
-  (cond
-    ((substp "http" url) url)
-    ((string-starts-with url "//") url)
-    (t (http-join url))))
-
-(defun http-join (url)
-  (let ((https-url (concatenate 'string "https://" url))
-        (http-url (concatenate 'string "http://" url)))
-    (handler-case (progn
-                    (dex:get https-url)
-                    https-url)
-      (error () http-url))))
-
 (defun substp (regex string)
   (cl-ppcre:scan-to-strings regex string))
 
 (defun string-starts-with (string x)
   (string-equal string x :end1 (length x)))
 
-(defun last-char (x)
-  (aref x (1- (length x))))
+(defun random-string (len)
+  (with-output-to-string (str)
+    (dotimes (n len)
+      (case (random 3)
+        (0 (princ (code-char (+ 65 (random 26))) str))
+        (1 (princ (code-char (+ 97 (random 26))) str))
+        (2 (princ (random 10) str))))))
+
+(defun ts-type (value)
+  (cond
+    ((null value) "null")
+    ((stringp value) "string")
+    ((numberp value) "number")
+    ((or (eq value t) (eq value 'nil)) "boolean")
+    ((listp value)
+     (if (every #'stringp value)
+         "string[]"
+         (if (every #'numberp value)
+             "number[]"
+             "any[]")))
+    ((hash-table-p value) "Record<string, any>")
+    ((and (listp value)
+          (every (lambda (x)
+                   (and (consp x)
+                        (symbolp (car x))))
+                 value))
+     "Record<string, any>")
+    ((symbolp value) "string")
+    (t "any")))
