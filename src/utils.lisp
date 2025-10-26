@@ -3,7 +3,12 @@
   (:use :cl)
   (:export :for-line-in
            :with-get
-           :ts-type))
+           :string-starts-with
+           :carlast
+           :entry-existp
+           :sethash
+           :ts-type
+           :random-string))
 
 (in-package :nine.utils)
 
@@ -34,11 +39,20 @@
              (progn ,@body)))
        (error (e) (print e)))))
 
+(defun carlast (x)
+  (car (last x)))
+
 (defun substp (regex string)
   (cl-ppcre:scan-to-strings regex string))
 
 (defun string-starts-with (string x)
   (string-equal string x :end1 (length x)))
+
+(defun entry-existp (key table)
+  (nth-value 1 (gethash key table)))
+
+(defun sethash (key value table)
+  (setf (gethash key table) value))
 
 (defun random-string (len)
   (with-output-to-string (str)
@@ -49,17 +63,18 @@
         (2 (princ (random 10) str))))))
 
 (defun ts-type (value)
+  (print value)
   (cond
     ((null value) "null")
     ((stringp value) "string")
     ((numberp value) "number")
     ((or (eq value t) (eq value 'nil)) "boolean")
     ((listp value)
-     (if (every #'stringp value)
-         "string[]"
-         (if (every #'numberp value)
-             "number[]"
-             "any[]")))
+     (cond ((every #'stringp value)
+            "string[]")
+           (t (every #'numberp value)
+              "number[]"
+              "any[]")))
     ((hash-table-p value) "Record<string, any>")
     ((and (listp value)
           (every (lambda (x)
